@@ -10,7 +10,7 @@ pub fn router() -> Router<AppState> {
 
 async fn ready(axum::extract::State(state): axum::extract::State<AppState>) -> &'static str {
     // Cheap readiness check: ping the DB.
-    match sqlx::query_scalar::<_, i64>("SELECT 1")
+    match sqlx::query_scalar::<_, i32>("SELECT 1")
         .fetch_one(&state.db)
         .await
     {
