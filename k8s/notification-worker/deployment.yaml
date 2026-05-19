@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-worker
+  namespace: notification-service
+  labels: { app: notification-worker }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: notification-worker }
+  template:
+    metadata:
+      labels: { app: notification-worker }
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      containers:
+        - name: notification-worker
+          image: sharifme04/notification-worker:latest
+          ports:
+            - { containerPort: 9090, name: metrics }
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef: { name: notification-secrets, key: database-url }
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef: { name: notification-config, key: kafka-brokers }
+            - name: DELIVERY_SERVICE_URL
+              valueFrom:
+                configMapKeyRef: { name: notification-config, key: delivery-service-url }
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "500m", memory: "512Mi" }

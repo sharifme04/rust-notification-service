@@ -1,0 +1,31 @@
+/target
+**/*.rs.bk
+Cargo.lock.bk
+
+# Env
+.env
+.env.local
+*.secret
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+# macOS AppleDouble metadata files (created on non-HFS+ volumes)
+._*
+
+# Node / Angular
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.angular/
+dashboard/coverage/
+
+# Logs
+*.log
+
+# Build artifacts
+*.pid

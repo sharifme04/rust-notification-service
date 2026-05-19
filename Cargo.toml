@@ -1,0 +1,39 @@
+[workspace]
+resolver = "2"
+members = [
+    "services/api-gateway",
+    "services/notification-worker",
+    "services/delivery-service",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Md. Sharif Hossain <sharifmech04@gmail.com>"]
+repository = "https://github.com/sharifme04/rust-notification-service"
+
+[workspace.dependencies]
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = "2"
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+config = "0.14"
+prost = "0.13"
+prost-types = "0.13"
+tonic = "0.12"
+tonic-build = "0.12"
+sqlx = { version = "0.8", features = ["postgres", "uuid", "chrono", "runtime-tokio-rustls", "macros"] }
+rdkafka = { version = "0.37", features = ["cmake-build"] }
+prometheus = "0.13"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

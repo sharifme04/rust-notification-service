@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: notification-ingress
+  namespace: notification-service
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: notifications.local
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service: { name: api-gateway, port: { number: 80 } }
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service: { name: api-gateway, port: { number: 80 } }
+          - path: /
+            pathType: Prefix
+            backend:
+              service: { name: dashboard, port: { number: 80 } }
