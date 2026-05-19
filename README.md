@@ -10,7 +10,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system design and technical 
 
 ## Architecture
 
-```
+```text
 Angular Dashboard
       │ HTTP REST + WebSocket
       ▼
@@ -32,6 +32,18 @@ Three independently deployable Rust services:
 - **delivery-service** — Tonic gRPC server, Email/Webhook/In-app channels, retry with exponential backoff
 
 Infrastructure: PostgreSQL 16, Redpanda (Kafka-compatible), Redis, MailHog.
+
+---
+
+## Screenshots
+
+**Dashboard** — live metrics, WebSocket feed, channel configuration, and notification history
+
+![Notification Service Dashboard](docs/dashboard.png)
+
+**MailHog** — captured outbound emails from the delivery service during local development
+
+![MailHog Email Capture](docs/mailhog.png)
 
 ---
 
