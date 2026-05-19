@@ -4,6 +4,7 @@ use tracing_subscriber::EnvFilter;
 
 mod consumer;
 mod db;
+mod kafka;
 mod router;
 
 pub mod pb {
@@ -36,7 +37,9 @@ async fn main() -> anyhow::Result<()> {
             .await
             .with_context(|| format!("connect delivery service at {delivery_url}"))?;
 
+    let producer = kafka::producer::KafkaProducer::new(&brokers)?;
+
     tracing::info!(%brokers, %group_id, "notification-worker starting");
 
-    consumer::run(&brokers, &group_id, db, delivery).await
+    consumer::run(&brokers, &group_id, db, delivery, producer).await
 }

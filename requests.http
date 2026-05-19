@@ -1,0 +1,53 @@
+### Variables — set these before running
+@base = http://localhost:8080
+@token = Bearer local-dev-secret
+@user_id = 00000000-0000-0000-0000-000000000001
+
+### Health — liveness
+GET {{base}}/health/live
+
+### Health — readiness
+GET {{base}}/health/ready
+
+### Create notification
+POST {{base}}/api/v1/notifications
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "user_id": "{{user_id}}",
+  "event_type": "order.shipped",
+  "title": "Your order has shipped",
+  "body": "Order #1234 is on its way.",
+  "metadata": { "order_id": "1234", "carrier": "DHL" }
+}
+
+### List all notifications
+GET {{base}}/api/v1/notifications
+Authorization: {{token}}
+
+### List notifications for one user
+GET {{base}}/api/v1/notifications?user_id={{user_id}}&limit=10
+Authorization: {{token}}
+
+### Get single notification — replace ID with one returned above
+GET {{base}}/api/v1/notifications/00000000-0000-0000-0000-000000000000
+Authorization: {{token}}
+
+### Get user preferences
+GET {{base}}/api/v1/preferences
+Authorization: {{token}}
+
+### Upsert user preferences
+PUT {{base}}/api/v1/preferences
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "email": "alice@example.com",
+  "webhook_url": "http://localhost:9001/hook",
+  "channels": ["email", "in_app"]
+}
+
+### WebSocket connection (use wscat or similar)
+### wscat -c ws://localhost:8080/ws

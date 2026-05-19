@@ -1,8 +1,6 @@
-// Retry helper — wired into the gRPC delivery path in a later phase.
-#![allow(dead_code)]
-
 use std::time::Duration;
 
+/// Returns exponential backoff delay: base_ms * 2^attempt, capped at attempt=10.
 pub fn backoff_delay(attempt: u32, base_ms: u64) -> Duration {
     let factor = 2u64.saturating_pow(attempt.min(10));
     Duration::from_millis(base_ms.saturating_mul(factor))

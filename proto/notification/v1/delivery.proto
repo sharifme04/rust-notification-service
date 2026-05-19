@@ -16,12 +16,14 @@ message DeliverRequest {
   Channel channel = 3;
   Payload payload = 4;
   DeliveryOptions options = 5;
+  string delivery_job_id = 6;
 }
 
 message DeliverResponse {
   string delivery_id = 1;
   DeliveryStatus status = 2;
   string error_message = 3;
+  uint32 attempt_count = 4;
 }
 
 message DeliverBatchRequest {

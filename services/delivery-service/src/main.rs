@@ -1,11 +1,13 @@
 use std::net::SocketAddr;
 
 use anyhow::Context;
+use sqlx::postgres::PgPoolOptions;
 use tonic::transport::Server;
 use tracing_subscriber::EnvFilter;
 
 mod channels;
 mod grpc;
+mod kafka;
 mod retry;
 
 pub mod pb {
@@ -29,8 +31,16 @@ async fn main() -> anyhow::Result<()> {
         .parse()
         .context("invalid GRPC_PORT")?;
     let addr: SocketAddr = format!("0.0.0.0:{port}").parse()?;
+    let database_url = std::env::var("DATABASE_URL").context("DATABASE_URL not set")?;
+    let kafka_brokers = std::env::var("KAFKA_BROKERS").unwrap_or_else(|_| "localhost:9092".into());
 
-    let service = DeliveryServiceImpl::from_env()?;
+    let db = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&database_url)
+        .await
+        .context("connect Postgres")?;
+
+    let service = DeliveryServiceImpl::from_env(db, &kafka_brokers)?;
 
     tracing::info!(%addr, "delivery-service starting");
 

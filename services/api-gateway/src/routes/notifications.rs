@@ -8,6 +8,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::middleware::auth::AuthUser;
 use crate::AppState;
 
 pub fn router() -> Router<AppState> {
@@ -17,7 +18,13 @@ pub fn router() -> Router<AppState> {
             post(create_notification).get(list_notifications),
         )
         .route("/api/v1/notifications/{id}", get(get_notification))
+        .route(
+            "/api/v1/preferences",
+            get(get_preferences).put(upsert_preferences),
+        )
 }
+
+// ─── Notification models ─────────────────────────────────────────────────────
 
 #[derive(Deserialize)]
 pub struct CreateNotification {
@@ -41,8 +48,27 @@ pub struct Notification {
     pub updated_at: DateTime<Utc>,
 }
 
+// ─── Preferences models ───────────────────────────────────────────────────────
+
+#[derive(Deserialize, Serialize, sqlx::FromRow)]
+pub struct UserPreferences {
+    pub user_id: Uuid,
+    pub email: Option<String>,
+    pub webhook_url: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct UpsertPreferences {
+    pub email: Option<String>,
+    pub webhook_url: Option<String>,
+    pub channels: Option<Vec<String>>,
+}
+
+// ─── Handlers ────────────────────────────────────────────────────────────────
+
 async fn create_notification(
     State(state): State<AppState>,
+    _auth: AuthUser,
     Json(req): Json<CreateNotification>,
 ) -> Result<Json<Notification>, (StatusCode, String)> {
     let row = sqlx::query_as::<_, Notification>(
@@ -85,6 +111,7 @@ async fn create_notification(
 
 async fn get_notification(
     State(state): State<AppState>,
+    _auth: AuthUser,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Notification>, (StatusCode, String)> {
     let row = sqlx::query_as::<_, Notification>(
@@ -116,6 +143,7 @@ fn default_limit() -> i64 {
 
 async fn list_notifications(
     State(state): State<AppState>,
+    _auth: AuthUser,
     Query(q): Query<ListQuery>,
 ) -> Result<Json<Vec<Notification>>, (StatusCode, String)> {
     let limit = q.limit.clamp(1, 200);
@@ -148,6 +176,66 @@ async fn list_notifications(
     .map_err(internal)?;
 
     Ok(Json(rows))
+}
+
+async fn get_preferences(
+    State(state): State<AppState>,
+    auth: AuthUser,
+) -> Result<Json<UserPreferences>, (StatusCode, String)> {
+    let user_id: Uuid = auth
+        .0
+        .sub
+        .parse()
+        .map_err(|_| (StatusCode::BAD_REQUEST, "invalid user_id in token".into()))?;
+    let row = sqlx::query_as::<_, UserPreferences>(
+        "SELECT user_id, email, webhook_url FROM user_preferences WHERE user_id = $1",
+    )
+    .bind(user_id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(internal)?
+    .unwrap_or(UserPreferences {
+        user_id,
+        email: None,
+        webhook_url: None,
+    });
+    Ok(Json(row))
+}
+
+async fn upsert_preferences(
+    State(state): State<AppState>,
+    auth: AuthUser,
+    Json(body): Json<UpsertPreferences>,
+) -> Result<Json<UserPreferences>, (StatusCode, String)> {
+    let user_id: Uuid = auth
+        .0
+        .sub
+        .parse()
+        .map_err(|_| (StatusCode::BAD_REQUEST, "invalid user_id in token".into()))?;
+    let default_channels = vec!["in_app".to_string()];
+    let channels_pg: &[String] = body.channels.as_deref().unwrap_or(&default_channels);
+
+    let row = sqlx::query_as::<_, UserPreferences>(
+        r#"
+        INSERT INTO user_preferences (user_id, email, webhook_url, channels)
+        VALUES ($1, $2, $3, $4::delivery_channel[])
+        ON CONFLICT (user_id) DO UPDATE
+            SET email = EXCLUDED.email,
+                webhook_url = EXCLUDED.webhook_url,
+                channels = EXCLUDED.channels,
+                updated_at = NOW()
+        RETURNING user_id, email, webhook_url
+        "#,
+    )
+    .bind(user_id)
+    .bind(body.email.as_deref())
+    .bind(body.webhook_url.as_deref())
+    .bind(channels_pg)
+    .fetch_one(&state.db)
+    .await
+    .map_err(internal)?;
+
+    Ok(Json(row))
 }
 
 fn internal<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
